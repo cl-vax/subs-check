@@ -12,6 +12,7 @@ RUN apk add --no-cache nodejs zstd && \
         *) echo "不支持的架构: $ARCH" && exit 1 ;; \
     esac
 RUN echo "Building commit: ${GITHUB_SHA:0:7}" && \
+    export GOPROXY=https://goproxy.cn,direct && \
     go mod tidy && \
     go build -ldflags="-s -w -X main.Version=${VERSION} -X main.CurrentCommit=${GITHUB_SHA:0:7}" -trimpath -o subs-check .
 
