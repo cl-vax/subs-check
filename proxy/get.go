@@ -20,6 +20,67 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// isValidProxy checks if a proxy node meets the specified filtering criteria.
+// 筛选出如果协议是shadowsocks、vless或vmess，则需要开启ws或tls，或http伪装；排除reality
+func isValidProxy(proxy map[string]any) bool {
+	// 获取协议类型
+	protocol, ok := proxy["type"].(string)
+	if !ok {
+		return false // 没有类型字段，直接丢弃
+	}
+
+	// 规则 1: 协议必须是 shadowsocks, vless, 或 vmess
+	allowedProtocols := []string{"ss", "shadowsocks", "vless", "vmess"}
+	if !lo.Contains(allowedProtocols, protocol) {
+		return true // 如果不是我们关心的协议，直接放行，不应用后续规则
+	}
+    
+    // --- 如果代码运行到这里，说明协议是 ss, vless, 或 vmess ---
+
+	// 规则 3: 排除所有 REALITY 节点
+	if network, ok := proxy["network"].(string); ok && network == "tcp" {
+		if _, realityExists := proxy["reality-opts"]; realityExists {
+			slog.Debug("筛选节点：协议为tcp，检测到reality-opts，已排除", "name", proxy["name"])
+			return false
+		}
+	}
+    // 另一种更通用的判断方式，兼容不同客户端写法
+    if tlsSettings, ok := proxy["tls"].(bool); ok && tlsSettings {
+         if _, realityExists := proxy["reality-opts"]; realityExists {
+             slog.Debug("筛选节点：协议tls为true，检测到reality-opts，已排除", "name", proxy["name"])
+			 return false
+         }
+    }
+
+
+	// 规则 2: 必须开启 ws, tls, 或 http 伪装
+	// 检查是否开启 tls
+	if tlsEnabled, ok := proxy["tls"].(bool); ok && tlsEnabled {
+		return true // 满足条件：开启了tls
+	}
+
+	// 检查传输方式是否是 ws
+	if network, ok := proxy["network"].(string); ok && network == "ws" {
+		return true // 满足条件：传输方式是ws
+	}
+    
+	// 检查伪装类型是否是 http (通常用于 vmess)
+	if header, ok := proxy["header"].(map[string]any); ok {
+		if headerType, ok := header["type"].(string); ok && headerType == "http" {
+			return true // 满足条件：http伪装
+		}
+	}
+    // 兼容另一种写法 (clash classic)
+    if network, ok := proxy["network"].(string); ok && network == "http" {
+        return true // 满足条件：http伪装
+    }
+
+
+	// 如果以上所有伪装条件都不满足，则丢弃该节点
+	slog.Debug("筛选节点：协议匹配但缺少必要的伪装(ws/tls/http)，已排除", "name", proxy["name"], "type", protocol)
+	return false
+}
+
 func GetProxies() ([]map[string]any, error) {
 
 	// 解析本地与远程订阅清单
@@ -81,6 +142,12 @@ func GetProxies() ([]map[string]any, error) {
 						}
 					}
 
+                    // ==================== 新增筛选逻辑 ====================
+                    if !isValidProxy(proxy) {
+                        continue // 如果不符合我们的复杂规则，则跳过此节点
+                    }
+                    // ======================================================
+
 					// 为每个节点添加订阅链接来源信息和备注
 					proxy["sub_url"] = url
 					proxy["sub_tag"] = tag
@@ -117,6 +184,9 @@ func GetProxies() ([]map[string]any, error) {
 							}
 						}
 					}
+                    if !isValidProxy(proxy) {
+                        continue // 如果不符合我们的复杂规则，则跳过此节点
+                    }
 					// 为每个节点添加订阅链接来源信息和备注
 					proxyMap["sub_url"] = url
 					proxyMap["sub_tag"] = tag
