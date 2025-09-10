@@ -184,7 +184,7 @@ func GetProxies() ([]map[string]any, error) {
 							}
 						}
 					}
-                    if !isValidProxy(proxy) {
+                    if !isValidProxy(proxyMap) {
 						continue // 如果不符合我们的复杂规则，则跳过此节点
 					}
 					// 为每个节点添加订阅链接来源信息和备注
