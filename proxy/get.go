@@ -185,8 +185,8 @@ func GetProxies() ([]map[string]any, error) {
 						}
 					}
                     if !isValidProxy(proxy) {
-                        continue // 如果不符合我们的复杂规则，则跳过此节点
-                    }
+						continue // 如果不符合我们的复杂规则，则跳过此节点
+					}
 					// 为每个节点添加订阅链接来源信息和备注
 					proxyMap["sub_url"] = url
 					proxyMap["sub_tag"] = tag
