@@ -40,14 +40,14 @@ func isValidProxy(proxy map[string]any) bool {
 	// 规则 3: 排除所有 REALITY 节点
 	if network, ok := proxy["network"].(string); ok && network == "tcp" {
 		if _, realityExists := proxy["reality-opts"]; realityExists {
-			slog.Debug("筛选节点：协议为tcp，检测到reality-opts，已排除", "name", proxy["name"])
+			slog.Info("筛选节点：协议为tcp，检测到reality-opts，已排除", "name", proxy["name"])
 			return false
 		}
 	}
     // 另一种更通用的判断方式，兼容不同客户端写法
     if tlsSettings, ok := proxy["tls"].(bool); ok && tlsSettings {
          if _, realityExists := proxy["reality-opts"]; realityExists {
-             slog.Debug("筛选节点：协议tls为true，检测到reality-opts，已排除", "name", proxy["name"])
+             slog.Info("筛选节点：协议tls为true，检测到reality-opts，已排除", "name", proxy["name"])
 			 return false
          }
     }
@@ -77,7 +77,7 @@ func isValidProxy(proxy map[string]any) bool {
 
 
 	// 如果以上所有伪装条件都不满足，则丢弃该节点
-	slog.Debug("筛选节点：协议匹配但缺少必要的伪装(ws/tls/http)，已排除", "name", proxy["name"], "type", protocol)
+	slog.Info("筛选节点：协议匹配但缺少必要的伪装(ws/tls/http)，已排除", "name", proxy["name"], "type", protocol)
 	return false
 }
 
@@ -133,7 +133,7 @@ func GetProxies() ([]map[string]any, error) {
 					slog.Error(fmt.Sprintf("解析proxy错误: %v", err), "url", url)
 					return
 				}
-				slog.Debug(fmt.Sprintf("获取订阅链接: %s，有效节点数量: %d", url, len(proxyList)))
+				slog.Info(fmt.Sprintf("获取订阅链接: %s，有效节点数量: %d", url, len(proxyList)))
 				for _, proxy := range proxyList {
 					// 只测试指定协议
 					if t, ok := proxy["type"].(string); ok {
@@ -166,7 +166,7 @@ func GetProxies() ([]map[string]any, error) {
 			if !ok {
 				return
 			}
-			slog.Debug(fmt.Sprintf("获取订阅链接: %s，有效节点数量: %d", url, len(proxyList)))
+			slog.Info(fmt.Sprintf("获取订阅链接: %s，有效节点数量: %d", url, len(proxyList)))
 			for _, proxy := range proxyList {
 				if proxyMap, ok := proxy.(map[string]any); ok {
 					if t, ok := proxyMap["type"].(string); ok {
